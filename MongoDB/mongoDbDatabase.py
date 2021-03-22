@@ -198,7 +198,6 @@ class mongoDBOperation:
         except Exception as e:
             raise Exception('Exception Occurred')
             message = 'Exception Occurred: Function => dropCollection, DB Name => ' + db_name + 'Collection => ' + collection_name
-            #self.logger.log(self.file, message + ' : ' + str(e))
 
 
     def getRecords(self,db_name,collection_name):
@@ -226,4 +225,3 @@ class mongoDBOperation:
         except Exception as e:
             raise Exception('Exception Occurred')
             message = 'Exception Occurred: Function => getRecords, DB Name => ' + db_name + 'Collection => ' + collection_name
-            #self.logger.log(self.file, message + ' : ' + str(e))

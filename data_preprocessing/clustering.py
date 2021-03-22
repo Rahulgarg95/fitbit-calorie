@@ -2,33 +2,28 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from kneed import KneeLocator
 from file_operations import file_methods
+from AzureBlobStorage.azureBlobStorage import AzureBlobStorage
+from MongoDB.mongoDbDatabase import mongoDBOperation
+import io
 
 class KMeansClustering:
     """
-            This class shall  be used to divide the data into clusters before training.
-
-            Written By: iNeuron Intelligence
-            Version: 1.0
-            Revisions: None
-
-            """
+        This class shall  be used to divide the data into clusters before training.
+    """
 
     def __init__(self, file_object, logger_object):
         self.file_object = file_object
         self.logger_object = logger_object
+        self.dbObj = mongoDBOperation()
+        self.azureObj = AzureBlobStorage()
 
     def elbow_plot(self,data):
         """
-                        Method Name: elbow_plot
-                        Description: This method saves the plot to decide the optimum number of clusters to the file.
-                        Output: A picture saved to the directory
-                        On Failure: Raise Exception
-
-                        Written By: iNeuron Intelligence
-                        Version: 1.0
-                        Revisions: None
-
-                """
+            Method Name: elbow_plot
+            Description: This method saves the plot to decide the optimum number of clusters to the file.
+            Output: A picture saved to the directory
+            On Failure: Raise Exception
+        """
         self.logger_object.log(self.file_object, 'Entered the elbow_plot method of the KMeansClustering class')
         wcss=[] # initializing an empty list
         try:
@@ -41,7 +36,12 @@ class KMeansClustering:
             plt.xlabel('Number of clusters')
             plt.ylabel('WCSS')
             #plt.show()
-            plt.savefig('preprocessing_data/K-Means_Elbow.PNG') # saving the elbow plot locally
+            img_buffer = io.BytesIO()
+            plt.savefig(img_buffer, dpi=100)
+            img_buffer.seek(0)
+            self.azureObj.saveObject('preprocessing_data', 'K-Means_Elbow.PNG', img_buffer)
+            print('Saving Kmeans Elbow Plot to Azure')
+            #plt.savefig('preprocessing_data/K-Means_Elbow.PNG') # saving the elbow plot locally
             # finding the value of the optimum cluster programmatically
             self.kn = KneeLocator(range(1, 11), wcss, curve='convex', direction='decreasing')
             self.logger_object.log(self.file_object, 'The optimum number of clusters is: '+str(self.kn.knee)+' . Exited the elbow_plot method of the KMeansClustering class')
@@ -54,19 +54,15 @@ class KMeansClustering:
 
     def create_clusters(self,data,number_of_clusters):
         """
-                                Method Name: create_clusters
-                                Description: Create a new dataframe consisting of the cluster information.
-                                Output: A datframe with cluster column
-                                On Failure: Raise Exception
-
-                                Written By: iNeuron Intelligence
-                                Version: 1.0
-                                Revisions: None
-
-                        """
+            Method Name: create_clusters
+            Description: Create a new dataframe consisting of the cluster information.
+            Output: A datframe with cluster column
+            On Failure: Raise Exception
+        """
         self.logger_object.log(self.file_object, 'Entered the create_clusters method of the KMeansClustering class')
         self.data=data
         try:
+            self.azureObj.deleteFile('models')
             self.kmeans = KMeans(n_clusters=number_of_clusters, init='k-means++', random_state=42)
             #self.data = self.data[~self.data.isin([np.nan, np.inf, -np.inf]).any(1)]
             self.y_kmeans=self.kmeans.fit_predict(data) #  divide data into clusters

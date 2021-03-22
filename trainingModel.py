@@ -1,10 +1,5 @@
 """
 This is the Entry point for Training the Machine Learning Model.
-
-Written By: iNeuron Intelligence
-Version: 1.0
-Revisions: None
-
 """
 
 
@@ -16,7 +11,11 @@ from data_preprocessing import clustering
 from best_model_finder import tuner
 from file_operations import file_methods
 from application_logging import logger
-
+from MongoDB.mongoDbDatabase import mongoDBOperation
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from Email_Trigger.send_email import email
+from datetime import datetime
 #Creating the common Logging object
 
 
@@ -24,7 +23,11 @@ class trainModel:
 
     def __init__(self):
         self.log_writer = logger.App_Logger()
-        self.file_object = open("Training_Logs/ModelTrainingLog.txt", 'a+')
+        self.file_object = 'ModelTrainingLog'
+        self.dbObj = mongoDBOperation()
+        self.performance_list = []
+        self.emailObj = email()
+
     def trainingModel(self):
         # Logging the start of Training
         self.log_writer.log(self.file_object, 'Start of Training')
@@ -43,10 +46,7 @@ class trainModel:
             data = preprocessor.dropUnnecessaryColumns(data,['Id','ActivityDate','TotalDistance','TrackerDistance'])
 
             #replacing 'na' values with np.nan as discussed in the EDA part
-
             data = preprocessor.replaceInvalidValuesWithNull(data)
-
-
 
             # check if missing values are present in the dataset
             is_null_present,cols_with_missing_values=preprocessor.is_null_present(data)
