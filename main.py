@@ -66,7 +66,7 @@ def trainRouteClient():
         path='Training_Batch_Files'
         train_valObj = train_validation(path) #object initialization
 
-        train_valObj.train_validation()#calling the training_validation function
+        #train_valObj.train_validation()#calling the training_validation function
 
 
         trainModelObj = trainModel() #object initialization

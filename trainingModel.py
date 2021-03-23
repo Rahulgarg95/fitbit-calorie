@@ -88,6 +88,7 @@ class trainModel:
                 cluster_features=cluster_data.drop(['Labels','Cluster'],axis=1)
                 cluster_label= cluster_data['Labels']
 
+                print('Splitting data to test and train')
                 # splitting the data into training and test set for each cluster one by one
                 x_train, x_test, y_train, y_test = train_test_split(cluster_features, cluster_label, test_size=1 / 3, random_state=36)
 
@@ -97,18 +98,35 @@ class trainModel:
                 model_finder=tuner.Model_Finder(self.file_object,self.log_writer) # object initialization
 
                 #getting the best model for each of the clusters
-                best_model_name,best_model=model_finder.get_best_model(x_train_scaled,y_train,x_test_scaled,y_test)
+                best_model_name,best_model=model_finder.get_best_model(x_train_scaled,y_train,x_test_scaled,y_test,i)
 
                 #saving the best model to the directory.
                 file_op = file_methods.File_Operation(self.file_object,self.log_writer)
                 save_model=file_op.save_model(best_model,best_model_name+str(i))
+                self.performance_list.extend(model_finder.perf_data)
+
+            # logging the successful Training
+            print(self.performance_list)
+            print(type(self.performance_list))
+            print('Inserting Performance Metrics to MongoDB')
+            for dict_l in self.performance_list:
+                self.dbObj.insertOneRecord('fitbitDB', 'performance_metrics', dict_l)
+            self.log_writer.log(self.file_object, 'Successful End of Training')
+            print('Successfully end training')
+
+            # Triggering Email
+            msg = MIMEMultipart()
+            msg['Subject'] = 'FitBit Calories - Model Train | ' + str(datetime.now())
+            body = 'Model Training Done Successfully. Please find the models in models/ directory... <br><br> Thanks and Regards, <br> Rahul Garg'
+            msg.attach(MIMEText(body, 'html'))
+            to_addr = ['rahulgarg366@gmail.com']
+            self.emailObj.trigger_mail(to_addr, [], msg)
 
             # logging the successful Training
             self.log_writer.log(self.file_object, 'Successful End of Training')
-            self.file_object.close()
 
-        except Exception:
+        except Exception as e:
             # logging the unsuccessful Training
-            self.log_writer.log(self.file_object, 'Unsuccessful End of Training')
-            self.file_object.close()
+            self.log_writer.log(self.file_object, 'Unsuccessful End of Training: ' + e)
+            print(e)
             raise Exception

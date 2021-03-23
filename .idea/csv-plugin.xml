@@ -10,6 +10,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\best_model_finder\tuner.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\training_Validation_Insertion.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>

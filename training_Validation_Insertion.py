@@ -54,7 +54,7 @@ class train_validation:
             self.log_writer.log(self.file_object, "Good_Data folder deleted!!!")
             self.log_writer.log(self.file_object, "Moving bad files to Archive and deleting Bad_Data folder!!!")
             # Move the bad files to archive folder
-            self.raw_data.moveBadFilesToArchiveBad()
+            #self.raw_data.moveBadFilesToArchiveBad()
             self.log_writer.log(self.file_object, "Bad files moved to archive!! Bad folder Deleted!!")
             self.log_writer.log(self.file_object, "Validation Operation completed!!")
             self.log_writer.log(self.file_object, "Extracting csv file from table")

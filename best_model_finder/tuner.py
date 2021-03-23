@@ -4,11 +4,11 @@ from sklearn.metrics  import r2_score
 from sklearn.tree import DecisionTreeRegressor
 import pandas as pd
 from xgboost import XGBRegressor
-from sklearn.metrics  import roc_auc_score,accuracy_score,confusion_matrix
+from sklearn.metrics  import explained_variance_score,accuracy_score,mean_squared_error,mean_absolute_error,r2_score,median_absolute_error
 from sklearn.linear_model import SGDRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
-
+from datetime import datetime
 
 class Model_Finder:
     """
@@ -20,7 +20,7 @@ class Model_Finder:
         self.logger_object = logger_object
         self.clf = RandomForestRegressor()
         self.DecisionTreeReg = DecisionTreeRegressor()
-        self.xgb = XGBRegressor(objective='reg:squarederror')
+        self.xgb = XGBRegressor()
         self.sgdreg = SGDRegressor()
         self.knn = KNeighborsRegressor()
         self.svr = SVR()
@@ -112,7 +112,7 @@ class Model_Finder:
 
             tmp_dict = {'Model_Name': 'DecisionTree Classifier', 'criterion': self.criterion,
                         'max_depth': self.max_depth, 'splitter': self.splitter,
-                        'max_features': self.max_features, 'n_estimators': self.n_estimators}
+                        'max_features': self.max_features, 'min_samples_split': self.min_samples_split}
             self.best_param_list.append(tmp_dict)
 
             # creating a new model with the best parameters
@@ -276,7 +276,7 @@ class Model_Finder:
             self.penalty = self.grid.best_params_['penalty']
             self.alpha = self.grid.best_params_['alpha']
 
-            tmp_dict = {'Model_Name': 'Linear Regression','loss': self.loss,'penalty': self.penalty, 'alpha': self.alpha}
+            tmp_dict = {'Model_Name': 'SGD Regression','loss': self.loss,'penalty': self.penalty, 'alpha': self.alpha}
             self.best_param_list.append(tmp_dict)
 
             #creating a new model with the best parameters
@@ -296,7 +296,57 @@ class Model_Finder:
             raise Exception()
 
 
-    def get_best_model(self,train_x,train_y,test_x,test_y):
+    def get_performance_parameters(self,train_x,train_y,test_x,test_y,model_name,model,cluster_no):
+        try:
+            pref_dict={}
+
+            now = datetime.now()
+            date = now.date()
+            current_time = now.strftime("%H:%M:%S")
+            insert_date = str(date) + ' ' + str(current_time)
+            pref_dict['Insert_Date']=str(insert_date)
+            pref_dict['Cluster_No']=int(cluster_no)
+            pref_dict['Model_Name']=model_name
+
+            train_pred=model.predict(train_x)
+
+            #Test Accuracy
+            test_pred=model.predict(test_x)
+
+            # Median Abs Error
+            mae=median_absolute_error(test_y,test_pred)
+            pref_dict['Median_Abs_Error'] = round(mae, 2)
+            self.logger_object.log(self.file_object, 'Median Abs Error for ' + model_name + ' : ' + str(mae))
+
+            # Mean Squared Error
+            mse = mean_squared_error(test_y, test_pred)
+            pref_dict['Mean_Squared_Error'] = round(mse, 2)
+            self.logger_object.log(self.file_object, 'Mean Squared Error for ' + model_name + ' : ' + str(mse))
+
+            # R2 Error
+            r2_val = r2_score(test_y, test_pred)
+            pref_dict['R2_Error'] = round(r2_val, 2)
+            self.logger_object.log(self.file_object, 'R2 Error for ' + model_name + ' : ' + str(r2_val))
+
+            #explained_variance_score
+            evs = explained_variance_score(test_y, test_pred)
+            pref_dict['Explained_Variance_Ratio'] = round(evs, 2)
+            self.logger_object.log(self.file_object, 'Explained variance Error for ' + model_name + ' : ' + str(evs))
+
+            #Mean abs error
+            mae = mean_absolute_error(test_y, test_pred)
+            pref_dict['Mean_Absolute_Error'] = round(mae, 2)
+            self.logger_object.log(self.file_object, 'Mean Abs Error for ' + model_name + ' : ' + str(mae))
+
+            self.model_acc.append(r2_val)
+            self.model_list.append(model_name)
+            self.perf_data.append(pref_dict)
+
+        except Exception as e:
+            print('Exception Occurred: ', e)
+            raise e
+
+    def get_best_model(self, train_x, train_y, test_x, test_y, cluster_no):
         """
             Method Name: get_best_model
             Description: Find out the Model which has the best AUC score.
@@ -305,32 +355,62 @@ class Model_Finder:
         """
         self.logger_object.log(self.file_object,
                                'Entered the get_best_model method of the Model_Finder class')
-        # create best model for KNN
+
         try:
+            model_list1 = []
 
-            self.decisionTreeReg= self.get_best_params_for_DecisionTreeRegressor(train_x, train_y)
-            self.prediction_decisionTreeReg = self.decisionTreeReg.predict(test_x) # Predictions using the decisionTreeReg Model
-            self.decisionTreeReg_error = r2_score(test_y,self.prediction_decisionTreeReg)
+            # create best model for GaussianNB
+            self.decision_tree = self.get_best_params_for_DecisionTreeRegressor(train_x, train_y)
+            model_list1.append(self.decision_tree)
+            print('Setting Performance Parameters Decision Tree: ')
+            self.get_performance_parameters(train_x, train_y, test_x, test_y, 'DecisionTree', self.decision_tree, cluster_no)
 
-
-
-         # create best model for XGBoost
+            # create best model for XGBoost
+            print('Training XgBoost Model: ')
             self.xgboost = self.get_best_params_for_xgboost(train_x, train_y)
-            self.prediction_xgboost = self.xgboost.predict(test_x)  # Predictions using the XGBoost Model
-            self.prediction_xgboost_error = r2_score(test_y,self.prediction_xgboost)
+            model_list1.append(self.xgboost)
+            print('Setting Performance Parameters XGBoost: ')
+            self.get_performance_parameters(train_x, train_y, test_x, test_y, 'XGBoost', self.xgboost, cluster_no)
 
+            # create best model for Random Forest
+            print('Training Random Forest Model: ')
+            self.random_forest = self.get_best_params_for_random_forest(train_x, train_y)
+            model_list1.append(self.random_forest)
+            print('Setting Performance Parameters RandomForest: ')
+            self.get_performance_parameters(train_x, train_y, test_x, test_y, 'RandomForest', self.random_forest,
+                                            cluster_no)
 
-            #comparing the two models
-            if(self.decisionTreeReg_error <  self.prediction_xgboost_error):
-                return 'XGBoost',self.xgboost
-            else:
-                return 'DecisionTreeReg',self.decisionTreeReg
+            # create best model for SVM
+            self.support_vector = self.get_best_params_for_svm(train_x, train_y)
+            model_list1.append(self.support_vector)
+            self.get_performance_parameters(train_x, train_y, test_x, test_y, 'SVR', self.support_vector, cluster_no)
+
+            # create best model for SGD Regressor
+            self.sgd_reg = self.get_best_params_for_sgd_reg(train_x, train_y)
+            model_list1.append(self.sgd_reg)
+            self.get_performance_parameters(train_x, train_y, test_x, test_y, 'SGDRegressor', self.sgd_reg,
+                                            cluster_no)
+
+            # create best model for KNN Classification
+            self.knearest_neigh = self.get_best_params_for_knn(train_x, train_y)
+            model_list1.append(self.knearest_neigh)
+            self.get_performance_parameters(train_x, train_y, test_x, test_y, 'KNN', self.knearest_neigh, cluster_no)
+
+            print('Best Param List: ', self.best_param_list)
+            print('Model Names: ', self.model_list)
+            print('Model Accuracy: ', self.model_acc)
+
+            best_acc_score = max(self.model_acc)
+            temp_idx = self.model_acc.index(best_acc_score)
+            best_model_name = self.model_list[temp_idx]
+            print(best_model_name, best_acc_score)
+
+            return best_model_name, model_list1[temp_idx]
 
         except Exception as e:
             self.logger_object.log(self.file_object,
-                                   'Exception occured in get_best_model method of the Model_Finder class. Exception message:  ' + str(
+                                   'Exception occurred in get_best_model method of the Model_Finder class. Exception message:  ' + str(
                                        e))
             self.logger_object.log(self.file_object,
                                    'Model Selection Failed. Exited the get_best_model method of the Model_Finder class')
             raise Exception()
-
