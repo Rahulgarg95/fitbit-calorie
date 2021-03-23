@@ -2,14 +2,18 @@ from Prediction_Raw_Data_Validation.predictionDataValidation import Prediction_D
 from DataTypeValidation_Insertion_Prediction.DataTypeValidationPrediction import dBOperation
 from DataTransformation_Prediction.DataTransformationPrediction import dataTransformPredict
 from application_logging import logger
+from MongoDB.mongoDbDatabase import mongoDBOperation
+from AzureBlobStorage.azureBlobStorage import AzureBlobStorage
 
 class pred_validation:
     def __init__(self,path):
         self.raw_data = Prediction_Data_validation(path)
         self.dataTransform = dataTransformPredict()
         self.dBOperation = dBOperation()
-        self.file_object = open("Prediction_Logs/Prediction_Log.txt", 'a+')
+        self.file_object = 'Prediction_Log'
         self.log_writer = logger.App_Logger()
+        self.azureObj = AzureBlobStorage()
+        self.dbObj = mongoDBOperation()
 
     def prediction_validation(self):
 
@@ -36,11 +40,11 @@ class pred_validation:
 
             self.log_writer.log(self.file_object,"Creating Prediction_Database and tables on the basis of given schema!!!")
             #create database with given name, if present open the connection! Create table with columns given in schema
-            self.dBOperation.createTableDb('Prediction',column_names)
+            self.dBOperation.createTableDb('fitbitDB',column_names)
             self.log_writer.log(self.file_object,"Table creation Completed!!")
             self.log_writer.log(self.file_object,"Insertion of Data into Table started!!!!")
             #insert csv files in the table
-            self.dBOperation.insertIntoTableGoodData('Prediction')
+            self.dBOperation.insertIntoTableGoodData('fitbitDB')
             self.log_writer.log(self.file_object,"Insertion in Table completed!!!")
             self.log_writer.log(self.file_object,"Deleting Good Data Folder!!!")
             #Delete the good data folder after loading files in table
@@ -48,12 +52,12 @@ class pred_validation:
             self.log_writer.log(self.file_object,"Good_Data folder deleted!!!")
             self.log_writer.log(self.file_object,"Moving bad files to Archive and deleting Bad_Data folder!!!")
             #Move the bad files to archive folder
-            self.raw_data.moveBadFilesToArchiveBad()
+            #self.raw_data.moveBadFilesToArchiveBad()
             self.log_writer.log(self.file_object,"Bad files moved to archive!! Bad folder Deleted!!")
             self.log_writer.log(self.file_object,"Validation Operation completed!!")
             self.log_writer.log(self.file_object,"Extracting csv file from table")
             #export data in table to csvfile
-            self.dBOperation.selectingDatafromtableintocsv('Prediction')
+            self.dBOperation.selectingDatafromtableintocsv('fitbitDB')
 
         except Exception as e:
             print(str(e))

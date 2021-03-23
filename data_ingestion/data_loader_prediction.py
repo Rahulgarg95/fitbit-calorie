@@ -1,34 +1,30 @@
 import pandas as pd
+from AzureBlobStorage.azureBlobStorage import AzureBlobStorage
+from MongoDB.mongoDbDatabase import mongoDBOperation
+
 
 class Data_Getter_Pred:
     """
-    This class shall  be used for obtaining the data from the source for prediction.
-
-    Written By: iNeuron Intelligence
-    Version: 1.0
-    Revisions: None
-
+        This class shall  be used for obtaining the data from the source for prediction.
     """
     def __init__(self, file_object, logger_object):
-        self.prediction_file='Prediction_FileFromDB/InputFile.csv'
-        self.file_object=file_object
-        self.logger_object=logger_object
+        self.prediction_file = 'InputFile.csv'
+        self.file_object = file_object
+        self.logger_object = logger_object
+        self.dbObj = mongoDBOperation()
+        self.azureObj = AzureBlobStorage()
 
     def get_data(self):
         """
-        Method Name: get_data
-        Description: This method reads the data from source.
-        Output: A pandas DataFrame.
-        On Failure: Raise Exception
-
-         Written By: iNeuron Intelligence
-        Version: 1.0
-        Revisions: None
-
+            Method Name: get_data
+            Description: This method reads the data from source.
+            Output: A pandas DataFrame.
+            On Failure: Raise Exception
         """
         self.logger_object.log(self.file_object,'Entered the get_data method of the Data_Getter class')
         try:
-            self.data= pd.read_csv(self.prediction_file) # reading the data file
+            self.data = self.azureObj.csvToDataframe('Prediction_FileFromDB', self.prediction_file)
+            print('Prediction Data loaded from mongoDB')
             self.logger_object.log(self.file_object,'Data Load Successful.Exited the get_data method of the Data_Getter class')
             return self.data
         except Exception as e:
@@ -36,5 +32,3 @@ class Data_Getter_Pred:
             self.logger_object.log(self.file_object,
                                    'Data Load Unsuccessful.Exited the get_data method of the Data_Getter class')
             raise Exception()
-
-
